@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import argparse
 from rag_model import load_rag_system, RAGLegalSystem
-
+import re
 class LegalEvaluator:
     def __init__(self, rag_system=None, config_path="rag_config.json", index_path="legal_index.pkl"):
         """初始化评估器"""
@@ -52,7 +52,7 @@ class LegalEvaluator:
                 
                 # 使用 RAG 生成答案
                 content = self.rag_system.generate_answer_with_rag(question, options)
-                
+                content = re.sub(r'[^a-zA-Z]', '', content)
                 # 清理答案格式
                 content = content.strip().upper()
                 

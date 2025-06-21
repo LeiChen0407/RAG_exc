@@ -15,10 +15,10 @@ from typing import List, Dict, Any, Optional
 
 class RAGLegalSystem:
     def __init__(self, 
-                 base_model_path="../model/law_7b_full_data_f16",
+                 base_model_path="../model/lora_7b_total_no_comm_data",
                  embedding_model_path="../model/Qwen3-Embedding-0.6B", 
                  rerank_model_path="../model/Qwen3-Reranker-0.6B",
-                 document_path="../data/data_json_rag"):
+                 document_path="../data/data_json_rag_acc"):
         
         self.base_model_path = base_model_path
         self.embedding_model_path = embedding_model_path
@@ -361,10 +361,10 @@ def load_rag_system(config_path="rag_config.json", index_path="legal_index.pkl")
         
         # 2. 创建RAG系统
         rag_system = RAGLegalSystem(
-            base_model_path=config.get("base_model_path", "../model/law_7b_full_data_f16"),
+            base_model_path=config.get("base_model_path", "../model/lora_7b_total_no_comm_data"),
             embedding_model_path=config.get("embedding_model_path", "../model/Qwen3-Embedding-0.6B"),
             rerank_model_path=config.get("rerank_model_path", "../model/Qwen3-Reranker-0.6B"),
-            document_path=config.get("document_path", "../data/data_json_rag")
+            document_path=config.get("document_path", "../data/data_json_rag_acc")
         )
         
         # 3. 设置RAG系统
@@ -384,10 +384,10 @@ def load_rag_system(config_path="rag_config.json", index_path="legal_index.pkl")
 if __name__ == "__main__":
     # 创建评测器
     rag_system = RAGLegalSystem(
-        base_model_path="../model/law_7b_full_data_f16",
+        base_model_path="../model/lora_7b_total_no_comm_data",
         embedding_model_path="../model/Qwen3-Embedding-0.6B",
         rerank_model_path="../model/Qwen3-Reranker-0.6B",
-        document_path="../data/data_json_rag"
+        document_path="../data/data_json_rag_acc"
     )
     
     # 设置 RAG 系统
