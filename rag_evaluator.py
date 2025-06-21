@@ -4,16 +4,16 @@ import argparse
 from rag_model import load_rag_system, RAGLegalSystem
 
 class LegalEvaluator:
-    def __init__(self, rag_system=None, rag_system_path="rag_system.pkl"):
+    def __init__(self, rag_system=None, config_path="rag_config.json", index_path="legal_index.pkl"):
         """初始化评估器"""
         # 尝试加载现有的RAG系统
         self.rag_system = rag_system
         if self.rag_system is None:
-            self.rag_system = load_rag_system(rag_system_path)
+            self.rag_system = load_rag_system(config_path, index_path)
             
         # 如果加载失败，提示用户先运行初始化脚本
         if self.rag_system is None:
-            print(f"RAG system not found at {rag_system_path}.")
+            print(f"RAG system configuration not found at {config_path} or index not found at {index_path}.")
             print("Please run 'python rag_model.py' first to initialize and save the RAG system.")
             raise ValueError("RAG system not initialized")
     
@@ -144,7 +144,8 @@ class LegalEvaluator:
 def main():
     """主函数"""
     parser = argparse.ArgumentParser(description="Evaluate legal questions using RAG system")
-    parser.add_argument("--rag_path", type=str, default="rag_system.pkl", help="Path to the saved RAG system")
+    parser.add_argument("--config_path", type=str, default="rag_config.json", help="Path to the RAG system configuration")
+    parser.add_argument("--index_path", type=str, default="legal_index.pkl", help="Path to the saved index")
     parser.add_argument("--data_path", type=str, default="../data/val_csv_single/", help="Path to the data directory")
     parser.add_argument("--output_dir", type=str, default="results", help="Directory to save results")
     parser.add_argument("--files", nargs="+", default=["mcq_sing_cpa.csv", "mcq_sing_lbk.csv", "mcq_sing_nje.csv", 
@@ -153,7 +154,7 @@ def main():
     args = parser.parse_args()
     
     # 创建评估器
-    evaluator = LegalEvaluator(rag_system_path=args.rag_path)
+    evaluator = LegalEvaluator(config_path=args.config_path, index_path=args.index_path)
     
     # 进行评测
     accuracy, answers, results = evaluator.evaluate_with_rag(

@@ -11,7 +11,7 @@ from llama_index.core.postprocessor import SentenceTransformerRerank
 import json
 import os
 import pickle
-from typing import List
+from typing import List, Dict, Any, Optional
 
 class RAGLegalSystem:
     def __init__(self, 
@@ -165,6 +165,9 @@ class RAGLegalSystem:
         else:
             self._build_new_index(similarity_top_k, rerank_top_n, save_index, index_path)
         
+        # 3. 设置检索器和查询引擎
+        self._setup_retriever_and_engine(similarity_top_k, rerank_top_n)
+        
         print("RAG system setup complete!")
     
     def _build_new_index(self, similarity_top_k, rerank_top_n, save_index, index_path):
@@ -184,9 +187,6 @@ class RAGLegalSystem:
             with open(index_path, 'wb') as f:
                 pickle.dump(self.index, f)
             print("Index saved successfully!")
-        
-        # 设置检索器和查询引擎
-        self._setup_retriever_and_engine(similarity_top_k, rerank_top_n)
     
     def _setup_retriever_and_engine(self, similarity_top_k, rerank_top_n):
         """设置检索器和查询引擎"""
@@ -313,26 +313,69 @@ D：{options['D']}
         ).strip()
         
         return content
+    
+    def save_config(self, file_path="rag_config.json"):
+        """保存RAG系统配置，而不是整个系统"""
+        config = {
+            "base_model_path": self.base_model_path,
+            "embedding_model_path": self.embedding_model_path,
+            "rerank_model_path": self.rerank_model_path,
+            "document_path": self.document_path,
+            "has_index": self.index is not None
+        }
+        
+        with open(file_path, 'w') as f:
+            json.dump(config, f, indent=2)
+        
+        print(f"RAG system configuration saved to {file_path}")
+        return config
 
-# 用于保存和加载已初始化的RAG系统
-def save_rag_system(rag_system, file_path="rag_system.pkl"):
-    """保存RAG系统到文件"""
+# 修改后的保存和加载函数
+def save_rag_system(rag_system, config_path="rag_config.json", index_path="legal_index.pkl"):
+    """保存RAG系统配置和索引（不保存整个系统）"""
     try:
-        with open(file_path, 'wb') as f:
-            pickle.dump(rag_system, f)
-        print(f"RAG system saved to {file_path}")
+        # 1. 保存配置
+        config = rag_system.save_config(config_path)
+        
+        # 2. 确保索引已保存
+        if rag_system.index and not os.path.exists(index_path):
+            with open(index_path, 'wb') as f:
+                pickle.dump(rag_system.index, f)
+            print(f"Index saved to {index_path}")
+            
         return True
     except Exception as e:
         print(f"Error saving RAG system: {e}")
         return False
 
-def load_rag_system(file_path="rag_system.pkl"):
-    """从文件加载RAG系统"""
+def load_rag_system(config_path="rag_config.json", index_path="legal_index.pkl"):
+    """从配置加载RAG系统"""
     try:
-        with open(file_path, 'rb') as f:
-            rag_system = pickle.load(f)
-        print(f"RAG system loaded from {file_path}")
+        # 1. 加载配置
+        if not os.path.exists(config_path):
+            print(f"Configuration file {config_path} not found.")
+            return None
+            
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        
+        # 2. 创建RAG系统
+        rag_system = RAGLegalSystem(
+            base_model_path=config.get("base_model_path", "../model/law_7b_full_data_f16"),
+            embedding_model_path=config.get("embedding_model_path", "../model/Qwen3-Embedding-0.6B"),
+            rerank_model_path=config.get("rerank_model_path", "../model/Qwen3-Reranker-0.6B"),
+            document_path=config.get("document_path", "../data/data_json_rag")
+        )
+        
+        # 3. 设置RAG系统
+        rag_system.setup_rag_system(
+            save_index=False,  # 不需要再次保存索引
+            index_path=index_path
+        )
+        
+        print(f"RAG system loaded from configuration {config_path}")
         return rag_system
+        
     except Exception as e:
         print(f"Error loading RAG system: {e}")
         return None
@@ -355,7 +398,7 @@ if __name__ == "__main__":
         index_path="legal_index.pkl"
     )
     
-    # 保存初始化好的RAG系统
-    save_rag_system(rag_system, "rag_system.pkl")
+    # 保存RAG系统配置
+    save_rag_system(rag_system, "rag_config.json", "legal_index.pkl")
     
-    print("RAG system initialized and saved successfully!") 
+    print("RAG system initialized and configuration saved successfully!") 
