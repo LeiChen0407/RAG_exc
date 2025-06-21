@@ -15,7 +15,7 @@ from typing import List, Dict, Any, Optional
 
 class RAGLegalSystem:
     def __init__(self, 
-                 base_model_path="../model/lora_7b_total_no_comm_data",
+                 base_model_path="../model/lora_7b_total_no_comm_data_f16",
                  embedding_model_path="../model/Qwen3-Embedding-0.6B", 
                  rerank_model_path="../model/Qwen3-Reranker-0.6B",
                  document_path="../data/data_json_rag_acc"):
@@ -292,6 +292,7 @@ D：{options['D']}
         
         # 3. 使用原有的生成逻辑
         messages = [{"role": "user", "content": prompt}]
+        print(messages)
         text = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -361,7 +362,7 @@ def load_rag_system(config_path="rag_config.json", index_path="legal_index.pkl")
         
         # 2. 创建RAG系统
         rag_system = RAGLegalSystem(
-            base_model_path=config.get("base_model_path", "../model/lora_7b_total_no_comm_data"),
+            base_model_path=config.get("base_model_path", "../model/lora_7b_total_no_comm_data_f16"),
             embedding_model_path=config.get("embedding_model_path", "../model/Qwen3-Embedding-0.6B"),
             rerank_model_path=config.get("rerank_model_path", "../model/Qwen3-Reranker-0.6B"),
             document_path=config.get("document_path", "../data/data_json_rag_acc")
@@ -384,7 +385,7 @@ def load_rag_system(config_path="rag_config.json", index_path="legal_index.pkl")
 if __name__ == "__main__":
     # 创建评测器
     rag_system = RAGLegalSystem(
-        base_model_path="../model/lora_7b_total_no_comm_data",
+        base_model_path="../model/lora_7b_total_no_comm_data_f16",
         embedding_model_path="../model/Qwen3-Embedding-0.6B",
         rerank_model_path="../model/Qwen3-Reranker-0.6B",
         document_path="../data/data_json_rag_acc"
