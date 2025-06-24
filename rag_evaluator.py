@@ -146,10 +146,11 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate legal questions using RAG system")
     parser.add_argument("--config_path", type=str, default="rag_config.json", help="Path to the RAG system configuration")
     parser.add_argument("--index_path", type=str, default="legal_index.pkl", help="Path to the saved index")
-    parser.add_argument("--data_path", type=str, default="../data/val_csv_single/", help="Path to the data directory")
+    parser.add_argument("--data_path", type=str, default="../data/val_csv_mul/", help="Path to the data directory")
     parser.add_argument("--output_dir", type=str, default="results", help="Directory to save results")
-    parser.add_argument("--files", nargs="+", default=["mcq_sing_cpa.csv", "mcq_sing_lbk.csv", "mcq_sing_nje.csv", 
-                                                      "mcq_sing_pae.csv", "mcq_sing_pfe.csv", "mcq_sing_ungee.csv"],
+    parser.add_argument("--files", nargs="+", default = ["mcq_mult_cpa.csv","mcq_mult_nje.csv","mcq_mult_pae.csv","mcq_mult_ungee.csv"],
+                        # default=["mcq_sing_cpa.csv", "mcq_sing_lbk.csv", "mcq_sing_nje.csv", 
+                        #                               "mcq_sing_pae.csv", "mcq_sing_pfe.csv", "mcq_sing_ungee.csv"],
                         help="List of CSV files to evaluate")
     args = parser.parse_args()
     
