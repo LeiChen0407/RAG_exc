@@ -86,7 +86,6 @@ if prompt := st.chat_input("请输入您的问题..."):
             # Generate a title from the first prompt
             new_title = prompt[:30] + "..." if len(prompt) > 30 else prompt
             st.session_state.chat_sessions[st.session_state.current_chat_index]["title"] = new_title
-            st.rerun()
 
         # Generate and display assistant's response
         with st.chat_message("assistant"):
