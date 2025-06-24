@@ -39,7 +39,6 @@ class RAGLegalSystem:
         # 设置padding token以避免批处理错误
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-            self.tokenizer.padding_side = 'right'
         
         self.model = AutoModelForCausalLM.from_pretrained(
             self.base_model_path,
@@ -78,68 +77,71 @@ class RAGLegalSystem:
         return embed_model
     
     def _extract_text_from_json(self, json_obj) -> str:
-        """从 JSON 对象中提取文本内容，只保留同时包含 question 和 answer 字段的数据"""
+        """从 JSON 对象中提取文本内容，拼接所有字段的值"""
         if isinstance(json_obj, dict):
-            # 只处理同时包含 question 和 answer 字段的情况
-            question = json_obj.get('question', '')
-            answer = json_obj.get('answer', '')
-            
-            if question and answer:
-                return f"问题：{question}\n答案：{answer}"
-            else:
-                # 如果不同时包含两个字段，返回空字符串，这样文档会被跳过
-                return ""
+            text_parts = []
+            for value in json_obj.values():
+                if isinstance(value, str) and value.strip():
+                    text_parts.append(value.strip())
+            return " ".join(text_parts)
         elif isinstance(json_obj, str):
-            # 如果是字符串，直接返回
             return json_obj
         else:
-            # 其他类型返回空字符串
             return ""
     
     def load_legal_documents(self) -> List[Document]:
-        """加载法律文档"""
+        """加载法律文档，支持 .json 和 .jsonl 文件"""
         print(f"Loading documents from {self.document_path}...")
         documents = []
         
         # 遍历 JSON 文件
         for filename in os.listdir(self.document_path):
-            if filename.endswith('.json'):
-                file_path = os.path.join(self.document_path, filename)
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
+            if not filename.endswith(('.json', '.jsonl')):
+                continue
+
+            file_path = os.path.join(self.document_path, filename)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    if filename.endswith('.jsonl'):
+                        # 处理 .jsonl 文件 (每行一个JSON对象)
+                        for i, line in enumerate(f):
+                            if line.strip():
+                                data = json.loads(line)
+                                text_content = self._extract_text_from_json(data)
+                                if text_content:
+                                    doc = Document(
+                                        text=text_content,
+                                        metadata={
+                                            "source": filename,
+                                            "line": i + 1,
+                                            "file_path": file_path
+                                        }
+                                    )
+                                    documents.append(doc)
+                    else:  # .json file
+                        # 处理 .json 文件 (单个JSON对象或JSON对象列表)
                         data = json.load(f)
-                    
-                    # 处理不同的 JSON 结构
-                    if isinstance(data, list):
-                        # 如果是列表，处理每个项目
-                        for i, item in enumerate(data):
+                        
+                        items_to_process = data if isinstance(data, list) else [data]
+
+                        for i, item in enumerate(items_to_process):
                             text_content = self._extract_text_from_json(item)
                             if text_content:
-                                doc = Document(
-                                    text=text_content,
-                                    metadata={
-                                        "source": filename,
-                                        "index": i,
-                                        "file_path": file_path
-                                    }
-                                )
-                                documents.append(doc)
-                    else:
-                        # 如果是单个对象
-                        text_content = self._extract_text_from_json(data)
-                        if text_content:
-                            doc = Document(
-                                text=text_content,
-                                metadata={
+                                metadata = {
                                     "source": filename,
                                     "file_path": file_path
                                 }
-                            )
-                            documents.append(doc)
+                                if isinstance(data, list):
+                                    metadata["index"] = i
+                                doc = Document(
+                                    text=text_content,
+                                    metadata=metadata
+                                )
+                                documents.append(doc)
                             
-                except Exception as e:
-                    print(f"Error loading {filename}: {e}")
-                    continue
+            except Exception as e:
+                print(f"Error loading {filename}: {e}")
+                continue
         
         print(f"Loaded {len(documents)} documents")
         return documents
