@@ -11,7 +11,9 @@ from llama_index.core.postprocessor import SentenceTransformerRerank
 import json
 import os
 import pickle
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Generator
+from threading import Thread
+from transformers import TextIteratorStreamer
 
 class RAGLegalSystem:
     def __init__(self, 
@@ -259,8 +261,8 @@ class RAGLegalSystem:
                 print(f"Backup retrieval also failed: {backup_error}")
             return ""
     
-    def generate_conversational_answer(self, question: str, chat_history: List[Dict[str, str]]) -> str:
-        """为多轮对话生成答案"""
+    def generate_conversational_answer(self, question: str, chat_history: List[Dict[str, str]]) -> Generator[str, None, None]:
+        """为多轮对话生成答案，并以流式方式返回"""
         # 1. 获取相关上下文
         context = self.get_relevant_context(question)
         
@@ -295,7 +297,7 @@ class RAGLegalSystem:
         
         # 4. 使用原有的生成逻辑
         messages = [{"role": "user", "content": prompt}]
-        print(messages)
+        
         text = self.tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -303,20 +305,29 @@ class RAGLegalSystem:
         )
         model_inputs = self.tokenizer([text], return_tensors="pt").to(self.model.device)
         
-        generated_ids = self.model.generate(
+        # 5. 设置流式输出
+        streamer = TextIteratorStreamer(
+            self.tokenizer, 
+            skip_prompt=True, 
+            skip_special_tokens=True
+        )
+
+        generate_kwargs = dict(
             **model_inputs,
+            streamer=streamer,
             max_new_tokens=4096,
             temperature=0.7,
             do_sample=True,
             pad_token_id=self.tokenizer.eos_token_id
         )
         
-        content = self.tokenizer.decode(
-            generated_ids[0][model_inputs.input_ids.shape[1]:], 
-            skip_special_tokens=True
-        ).strip()
+        # 在一个单独的线程中运行生成，以允许主线程进行迭代
+        thread = Thread(target=self.model.generate, kwargs=generate_kwargs)
+        thread.start()
         
-        return content
+        # 从streamer中yield每个新的文本块
+        for new_text in streamer:
+            yield new_text
     
     def save_config(self, file_path="rag_config.json"):
         """保存RAG系统配置，而不是整个系统"""

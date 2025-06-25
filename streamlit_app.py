@@ -89,15 +89,15 @@ if prompt := st.chat_input("请输入您的问题..."):
 
         # Generate and display assistant's response
         with st.chat_message("assistant"):
-            with st.spinner("思考中..."):
-                response = rag_system.generate_conversational_answer(
-                    question=prompt,
-                    chat_history=current_session["history"][:-1] # Exclude current prompt from history for generation
-                )
-                st.markdown(response)
+            response_generator = rag_system.generate_conversational_answer(
+                question=prompt,
+                chat_history=current_session["history"][:-1] # Exclude current prompt from history for generation
+            )
+            # 使用 st.write_stream 来处理流式响应
+            full_response = st.write_stream(response_generator)
         
         # Add assistant response to history
-        current_session["history"].append({"role": "assistant", "content": response})
+        current_session["history"].append({"role": "assistant", "content": full_response})
 
 if not rag_system:
     st.warning("系统未就绪，请先确保 `rag_model.py` 已成功运行。") 
