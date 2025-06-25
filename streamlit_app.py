@@ -52,11 +52,23 @@ if st.sidebar.button("➕ 新建对话"):
     st.rerun()
 
 session_titles = [s["title"] for s in st.session_state.chat_sessions]
-st.session_state.current_chat_index = st.sidebar.radio(
+
+# Callback function to handle chat session switching
+def switch_chat_session():
+    """
+    Called when the user selects a different chat in the sidebar.
+    Updates the current_chat_index in the session state.
+    """
+    st.session_state.current_chat_index = st.session_state.chat_selector
+
+# Replace the old radio button with a more robust version using a key and callback
+st.sidebar.radio(
     "选择一个对话:",
-    range(len(session_titles)),
+    key="chat_selector",  # A unique key to access the widget's value
+    options=range(len(session_titles)),
     format_func=lambda i: session_titles[i],
-    index=st.session_state.current_chat_index
+    index=st.session_state.current_chat_index,
+    on_change=switch_chat_session,  # The callback to execute on change
 )
 
 st.sidebar.info("您可以新建多个对话。每个对话的上下文都是独立的。")
